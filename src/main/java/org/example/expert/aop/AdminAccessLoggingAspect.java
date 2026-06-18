@@ -6,6 +6,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.example.expert.domain.common.dto.AuthUser;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -16,15 +19,25 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class AdminAccessLoggingAspect {
 
-    private final HttpServletRequest request;
+	private final HttpServletRequest request;
 
-    @Before("execution(* org.example.expert.domain.user.controller.UserAdminController.changeUserRole(..))")
-    public void logBeforeChangeUserRole(JoinPoint joinPoint) {
-        String userId = String.valueOf(request.getAttribute("userId"));
-        String requestUrl = request.getRequestURI();
-        LocalDateTime requestTime = LocalDateTime.now();
+	@Before("execution(* org.example.expert.domain.user.controller.UserAdminController.changeUserRole(..))")
+	public void logBeforeChangeUserRole(JoinPoint joinPoint) {
+		String userId = getCurrentUserId();
+		String requestUrl = request.getRequestURI();
+		LocalDateTime requestTime = LocalDateTime.now();
 
-        log.info("Admin Access Log - User ID: {}, Request Time: {}, Request URL: {}, Method: {}",
-                userId, requestTime, requestUrl, joinPoint.getSignature().getName());
-    }
+		log.info("Admin Access Log - User ID: {}, Request Time: {}, Request URL: {}, Method: {}",
+			userId, requestTime, requestUrl, joinPoint.getSignature().getName());
+	}
+
+	private String getCurrentUserId() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+		if (authentication == null || !(authentication.getPrincipal() instanceof AuthUser authUser)) {
+			return "UNKNOWN";
+		}
+
+		return String.valueOf(authUser.getId());
+	}
 }
